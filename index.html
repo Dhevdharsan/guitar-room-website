@@ -183,6 +183,25 @@
   .tkey.lit .hz{color:rgba(255,255,255,.8)}
   .tune-status{margin-top:16px;text-align:center;font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--faint);min-height:18px}
   .tune-status b{color:var(--red)}
+
+  /* ===== TUNER MODES (tone vs listen) ===== */
+  .tuner-modes{display:flex;gap:8px;margin-bottom:18px}
+  .tmode{flex:1;font-family:var(--mono);font-size:12.5px;letter-spacing:.04em;padding:11px;border-radius:11px;border:1.5px solid var(--line);background:#fff;color:var(--muted);cursor:pointer;transition:.25s}
+  .tmode:hover{border-color:var(--red);color:var(--red)}
+  .tmode.active{background:var(--red);color:#fff;border-color:var(--red);font-weight:700}
+  .mic-stage{margin-top:6px}
+  .needle-wrap{position:relative;max-width:260px;margin:0 auto 6px}
+  .needle-svg{width:100%;display:block}
+  .needle-labels{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:var(--faint);margin-top:-6px;padding:0 4px}
+  .needle-labels span:nth-child(2){color:#3a9a52;font-weight:700}
+  .mic-readout{text-align:center;margin:8px 0 20px}
+  .mic-note{font-family:var(--display);font-size:48px;font-weight:900;color:var(--ink);line-height:1;transition:color .15s}
+  .mic-note.in-tune{color:#3a9a52}
+  .mic-hz{font-family:var(--mono);font-size:12px;color:var(--faint);letter-spacing:.06em;margin-top:4px}
+  #tunerListen .tkey{cursor:default}
+  #tunerListen .tkey.detected{border-color:var(--red);box-shadow:0 0 0 3px rgba(194,24,43,.15)}
+  #tunerListen .tkey.detected.in-tune{border-color:#3a9a52;box-shadow:0 0 0 3px rgba(58,154,82,.18)}
+  .mic-permission-note{font-size:13px;color:var(--faint);text-align:center;margin-top:14px;display:none}
   /* metronome */
   .metro-top{display:flex;align-items:baseline;gap:8px;margin-bottom:6px}
   .metro-bpm{font-family:var(--display);font-size:60px;font-weight:900;color:var(--red);line-height:1}
@@ -500,18 +519,46 @@
       <h2>Warm up <span class="it">right here</span></h2>
       <p>Three free tools that live on the page — tune up, keep time, and jam to a drum groove before your lesson. Everything runs in your browser.</p>
     </div>
-    <div class="studio-note reveal">
+    <div class="studio-note reveal" id="tunerNote">
       <span>💡</span>
-      <div><b>How the tuner works:</b> click a string and it plays that note's exact reference pitch as a steady, continuous tone. Pluck the matching string on your real guitar and turn the tuning peg until your string sounds the same — no beating or wobble between the two. Click the key again (or pick another) to stop.</div>
+      <div><b>How the tuner works:</b> click a string and it plays that note's exact reference pitch as a steady, continuous tone. Pluck the matching string on your real guitar and turn the tuning peg until your string sounds the same — no beating or wobble between the two. Click the key again (or pick another) to stop. Switch to <b>Listen mode</b> to have the app listen through your mic and tell you if you're sharp or flat instead.</div>
     </div>
     <div class="studio-grid">
       <div class="tool reveal">
         <span class="badge">Web Audio</span>
         <h3>Reference Tuner</h3>
-        <div class="sub">standard · E A D G B E</div>
-        <div class="howto">Tap a string below to hear its target pitch ring out, then tune your guitar by ear until it matches.</div>
-        <div class="tuner-strings" id="tuner"></div>
-        <div class="tune-status" id="tuneStatus">Ready — tap a string to begin tuning</div>
+        <div class="tuner-modes" id="tunerModes">
+          <button class="tmode active" data-m="tone">🔊 Play tones</button>
+          <button class="tmode" data-m="listen">🎙️ Listen mode</button>
+        </div>
+
+        <div id="toneMode">
+          <div class="sub">standard · E A D G B E</div>
+          <div class="howto">Tap a string below to hear its target pitch ring out, then tune your guitar by ear until it matches.</div>
+          <div class="tuner-strings" id="tuner"></div>
+          <div class="tune-status" id="tuneStatus">Ready — tap a string to begin tuning</div>
+        </div>
+
+        <div id="listenMode" style="display:none">
+          <div class="howto">Tap Start, allow microphone access, then play one string at a time. The needle shows sharp/flat and the nearest string lights up.</div>
+          <button class="btn btn-primary" id="micToggle" style="width:100%;justify-content:center">🎙️ Start listening</button>
+          <div class="mic-stage" id="micStage" style="display:none">
+            <div class="needle-wrap">
+              <svg viewBox="0 0 220 130" class="needle-svg">
+                <path d="M14 118 A96 96 0 0 1 206 118" fill="none" stroke="var(--line)" stroke-width="10" stroke-linecap="round"/>
+                <path id="needleArcGood" d="M86 28 A96 96 0 0 1 134 28" fill="none" stroke="#3a9a52" stroke-width="10" stroke-linecap="round" opacity="0"/>
+                <line id="needle" x1="110" y1="118" x2="110" y2="32" stroke="var(--ink)" stroke-width="4" stroke-linecap="round" style="transform-origin:110px 118px;transition:transform .12s ease-out"/>
+                <circle cx="110" cy="118" r="7" fill="var(--ink)"/>
+              </svg>
+              <div class="needle-labels"><span>FLAT</span><span>IN TUNE</span><span>SHARP</span></div>
+            </div>
+            <div class="mic-readout">
+              <div class="mic-note" id="micNote">—</div>
+              <div class="mic-hz" id="micHz">Play a string</div>
+            </div>
+            <div class="tuner-strings" id="tunerListen"></div>
+          </div>
+        </div>
       </div>
       <div class="tool reveal" style="transition-delay:.08s">
         <span class="badge">Live</span>
@@ -812,6 +859,184 @@ STR.forEach((s,i)=>{
   };
   tuner.appendChild(k);
 });
+
+/* ===== TUNER MODE SWITCH (Play tones vs Listen) ===== */
+const toneModeEl=document.getElementById('toneMode'),listenModeEl=document.getElementById('listenMode');
+document.querySelectorAll('#tunerModes .tmode').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#tunerModes .tmode').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  const m=b.dataset.m;
+  toneModeEl.style.display=(m==='tone')?'':'none';
+  listenModeEl.style.display=(m==='listen')?'':'none';
+  if(m==='tone')stopListening(); else stopTune();
+});
+
+/* ===== LISTEN MODE: live microphone pitch detection ===== */
+const tunerListen=document.getElementById('tunerListen'),micToggle=document.getElementById('micToggle');
+const micStage=document.getElementById('micStage'),micNote=document.getElementById('micNote'),micHz=document.getElementById('micHz');
+const needle=document.getElementById('needle');
+
+const listenKeys=[];
+STR.forEach((s)=>{
+  const k=document.createElement('div');k.className='tkey';
+  k.innerHTML=`<span class="n">${s.n}</span><span class="hz">${s.f.toFixed(1)} Hz</span>`;
+  tunerListen.appendChild(k);listenKeys.push(k);
+});
+
+let micStream=null,micCtx=null,micAnalyser=null,micRAF=null,listening=false;
+
+/* Autocorrelation pitch detector — the standard technique behind most tuner apps.
+   It finds the lag (in samples) where the waveform best matches a delayed copy of
+   itself; that lag is the period of the pitch.
+
+   Earlier version: found the first "peak after the first descent" anywhere in the
+   buffer, then tried to patch wrong octaves after the fact. That patch logic
+   actually broke CORRECT low-E readings, because autocorrelation is naturally
+   almost as strong at exact multiples of the true period — multiplying a right
+   answer by 2 looked like a fix but wasn't.
+
+   Fixed version: search directly for the global maximum, but ONLY within the lag
+   range that corresponds to real guitar pitches (55–420 Hz). Restricting the
+   search window removes the ambiguity entirely — there's no faraway wrong peak
+   left to find, so no octave-correction hack is needed afterwards. */
+const PITCH_MIN_HZ=55, PITCH_MAX_HZ=420;
+
+function autoCorrelate(buf, sampleRate){
+  const SIZE=buf.length;
+  let rms=0;
+  for(let i=0;i<SIZE;i++) rms+=buf[i]*buf[i];
+  rms=Math.sqrt(rms/SIZE);
+  if(rms<0.01) return -1; // too quiet / silence — nothing to detect
+
+  // trim leading/trailing near-silence so the window centers on the signal
+  let r1=0,r2=SIZE-1,thresh=0.2;
+  for(let i=0;i<SIZE/2;i++){ if(Math.abs(buf[i])>thresh){ r1=i; break; } }
+  for(let i=1;i<SIZE/2;i++){ if(Math.abs(buf[SIZE-i])>thresh){ r2=SIZE-i; break; } }
+  const trimmed=buf.slice(r1,r2);
+  const n=trimmed.length;
+
+  const minLag=Math.floor(sampleRate/PITCH_MAX_HZ);
+  const maxLag=Math.min(n-2, Math.ceil(sampleRate/PITCH_MIN_HZ));
+  if(maxLag<=minLag) return -1; // buffer too short for the lowest note we care about
+
+  let bestLag=-1,bestVal=-Infinity;
+  for(let lag=minLag;lag<=maxLag;lag++){
+    let sum=0;
+    for(let i=0;i<n-lag;i++) sum+=trimmed[i]*trimmed[i+lag];
+    if(sum>bestVal){ bestVal=sum; bestLag=lag; }
+  }
+  if(bestLag<=0) return -1;
+
+  // parabolic interpolation around the winning lag for sub-sample precision
+  let T0=bestLag;
+  if(bestLag>minLag && bestLag<maxLag){
+    const corrAt=(lag)=>{ let s=0; for(let i=0;i<n-lag;i++) s+=trimmed[i]*trimmed[i+lag]; return s; };
+    const x1=corrAt(bestLag-1), x2=bestVal, x3=corrAt(bestLag+1);
+    const a=(x1+x3-2*x2)/2, b=(x3-x1)/2;
+    if(a) T0 = bestLag - b/(2*a);
+  }
+  return sampleRate/T0;
+}
+
+function closestString(freq){
+  let best=STR[0],bd=Infinity;
+  for(const s of STR){ const d=Math.abs(freq-s.f); if(d<bd){bd=d;best=s;} }
+  return best;
+}
+function centsOff(freq,target){ return 1200*Math.log2(freq/target); }
+
+function updateNeedleUI(freq){
+  const target=closestString(freq);
+  const cents=centsOff(freq,target.f);
+  const clamped=Math.max(-50,Math.min(50,cents));
+  const angle=(clamped/50)*78; // degrees, -78..78 across the gauge
+  needle.style.transform=`rotate(${angle}deg)`;
+
+  const inTune=Math.abs(cents)<=6;
+  micNote.textContent=target.n;
+  micNote.classList.toggle('in-tune',inTune);
+  micHz.textContent=inTune
+    ? `${freq.toFixed(1)} Hz · in tune ✓`
+    : `${freq.toFixed(1)} Hz · ${cents>0?'sharp':'flat'} by ${Math.abs(cents).toFixed(0)}¢ (target ${target.f.toFixed(1)} Hz)`;
+
+  listenKeys.forEach((k,i)=>{
+    k.classList.toggle('detected', STR[i].n===target.n);
+    k.classList.toggle('in-tune', STR[i].n===target.n && inTune);
+  });
+}
+function resetNeedleUI(msg){
+  needle.style.transform='rotate(0deg)';
+  micNote.textContent='—';micNote.classList.remove('in-tune');
+  micHz.textContent=msg||'Play a string';
+  listenKeys.forEach(k=>k.classList.remove('detected','in-tune'));
+}
+
+/* --- smoothing + hold, so a decaying pluck doesn't flicker the display ---
+   A single plucked note naturally dips below the detection threshold many
+   times a second as it rings out. Instead of reacting to every raw frame:
+     1) keep a short rolling window of recent good readings and use their
+        MEDIAN (resistant to one-off bad detections / octave blips), and
+     2) once we have a confident reading, HOLD it on screen for a grace
+        period even if a frame or two comes back empty, so the readout
+        feels stable instead of flashing on/off. */
+const PITCH_HISTORY=8, HOLD_MS=900;
+let pitchHist=[], lastGoodAt=0, lastShown=null;
+
+function pitchLoop(){
+  if(!listening) return;
+  const buf=new Float32Array(micAnalyser.fftSize);
+  micAnalyser.getFloatTimeDomainData(buf);
+  const freq=autoCorrelate(buf, micCtx.sampleRate);
+  const now=performance.now();
+
+  if(freq>PITCH_MIN_HZ && freq<PITCH_MAX_HZ){ // guitar's practical range, ignores rumble/noise
+    pitchHist.push(freq);
+    if(pitchHist.length>PITCH_HISTORY) pitchHist.shift();
+    // median of recent readings — smooths out single-frame jitter/octave blips
+    const sorted=[...pitchHist].sort((a,b)=>a-b);
+    const median=sorted[Math.floor(sorted.length/2)];
+    updateNeedleUI(median);
+    lastShown=median; lastGoodAt=now;
+  } else if(lastShown!==null && (now-lastGoodAt)<HOLD_MS){
+    // brief silent gap mid-pluck — keep showing the last good reading
+    updateNeedleUI(lastShown);
+  } else {
+    pitchHist=[]; lastShown=null;
+    resetNeedleUI();
+  }
+  micRAF=requestAnimationFrame(pitchLoop);
+}
+
+async function startListening(){
+  try{
+    micStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+  }catch(err){
+    micToggle.textContent='🎙️ Microphone blocked — check browser permissions';
+    return;
+  }
+  micCtx=new (window.AudioContext||window.webkitAudioContext)();
+  const src=micCtx.createMediaStreamSource(micStream);
+  micAnalyser=micCtx.createAnalyser();
+  micAnalyser.fftSize=4096;
+  src.connect(micAnalyser);
+  listening=true;
+  pitchHist=[];lastShown=null;lastGoodAt=0;
+  micStage.style.display='';
+  micToggle.textContent='■ Stop listening';
+  resetNeedleUI();
+  pitchLoop();
+}
+function stopListening(){
+  listening=false;
+  pitchHist=[];lastShown=null;
+  if(micRAF) cancelAnimationFrame(micRAF);
+  if(micStream) micStream.getTracks().forEach(t=>t.stop());
+  if(micCtx) micCtx.close().catch(()=>{});
+  micStream=null;micCtx=null;micAnalyser=null;
+  micStage.style.display='none';
+  micToggle.textContent='🎙️ Start listening';
+}
+micToggle.onclick=()=>listening?stopListening():startListening();
 
 /* ===== TRANSPORT (drives metronome + drums in one clock so they stay in sync) ===== */
 let bpm=90,beatsPerBar=4,subdiv=1;
