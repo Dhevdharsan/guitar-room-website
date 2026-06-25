@@ -248,4 +248,3 @@ Designed and built for **The Guitar Room**, Chennai — Anna Nagar & Adambakkam 
 
 Original brand identity (wordmark, color palette) preserved and extended throughout this redesign. Course curriculum, studio details, and Trinity College London certification information sourced from the school directly.
 
-— *Built in collaboration with Claude (Anthropic).*
