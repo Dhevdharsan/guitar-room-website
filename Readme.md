@@ -2,7 +2,7 @@
 
 **A complete digital presence for The Guitar Room, Chennai** — a marketing website, an installable practice app, and a live student-review pipeline, built as a single self-contained, zero-dependency-cost product.
 
-🔗 **Live site:** `[https://theguitarroom.in](https://dhevdharsan.github.io/guitar-room-website/)` *(GitHub Pages)*
+🔗 **Live site:** `https://dhevdharsan.github.io/guitar-room-website/` *(GitHub Pages)*
 🎸 **Repository:** `guitar-room-website`
 
 ---
