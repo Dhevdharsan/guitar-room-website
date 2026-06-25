@@ -901,18 +901,42 @@ let micStream=null,micCtx=null,micAnalyser=null,micRAF=null,listening=false;
    left to find, so no octave-correction hack is needed afterwards. */
 const PITCH_MIN_HZ=55, PITCH_MAX_HZ=420;
 
+function lowpassFilter(buf, alpha){
+  // Simple one-pole low-pass filter. Smooths out fast, random wiggling (mic
+  // hiss, handling noise, electrical noise) while leaving the much slower
+  // musical waveform of a plucked string intact.
+  const out=new Float32Array(buf.length);
+  out[0]=buf[0];
+  for(let i=1;i<buf.length;i++) out[i]=out[i-1]+alpha*(buf[i]-out[i-1]);
+  return out;
+}
+
 function autoCorrelate(buf, sampleRate){
   const SIZE=buf.length;
   let rms=0;
   for(let i=0;i<SIZE;i++) rms+=buf[i]*buf[i];
   rms=Math.sqrt(rms/SIZE);
-  if(rms<0.01) return -1; // too quiet / silence — nothing to detect
+  // Lowered from 0.01 — phone mics (notably iPhone, even with AGC/noiseSuppression
+  // disabled) often deliver a noticeably quieter signal than a laptop mic for the
+  // same real pluck. The old threshold silently rejected normal-strength picks,
+  // only "working" once picked hard enough to push past it.
+  if(rms<0.003) return -1; // still rejects true silence/handling noise
+
+  // IMPORTANT: a uniform volume boost (multiplying everything by the same number)
+  // was tried first and does NOT fix a noisy quiet signal — it amplifies the noise
+  // by the exact same amount as the music, so the underlying signal-to-noise ratio
+  // never improves. What actually fixes it is filtering: noise is comparatively
+  // fast/random, while a guitar string's fundamental + harmonics are comparatively
+  // slow and periodic, so a low-pass filter can separate them.
+  const filtered=lowpassFilter(buf, 0.35);
 
   // trim leading/trailing near-silence so the window centers on the signal
-  let r1=0,r2=SIZE-1,thresh=0.2;
-  for(let i=0;i<SIZE/2;i++){ if(Math.abs(buf[i])>thresh){ r1=i; break; } }
-  for(let i=1;i<SIZE/2;i++){ if(Math.abs(buf[SIZE-i])>thresh){ r2=SIZE-i; break; } }
-  const trimmed=buf.slice(r1,r2);
+  // (threshold scales with the signal's own loudness instead of a fixed number,
+  // so it adapts to quiet mics instead of trimming away the whole quiet signal)
+  let r1=0,r2=SIZE-1,thresh=Math.max(0.05, rms*1.5);
+  for(let i=0;i<SIZE/2;i++){ if(Math.abs(filtered[i])>thresh){ r1=i; break; } }
+  for(let i=1;i<SIZE/2;i++){ if(Math.abs(filtered[SIZE-i])>thresh){ r2=SIZE-i; break; } }
+  const trimmed=filtered.slice(r1,r2);
   const n=trimmed.length;
 
   const minLag=Math.floor(sampleRate/PITCH_MAX_HZ);
@@ -926,6 +950,13 @@ function autoCorrelate(buf, sampleRate){
     if(sum>bestVal){ bestVal=sum; bestLag=lag; }
   }
   if(bestLag<=0) return -1;
+
+  // Confidence check: on a clean signal the winning lag's correlation clearly
+  // beats the signal's own energy. On a noisy/quiet signal it can be only
+  // marginally ahead — that's the "D/A read as out of tune even when in tune"
+  // symptom. Reject ambiguous winners instead of confidently reporting a guess.
+  const norm=trimmed.reduce((s,v)=>s+v*v,0) || 1;
+  if(bestVal/norm < 0.3) return -1;
 
   // parabolic interpolation around the winning lag for sub-sample precision
   let T0=bestLag;
