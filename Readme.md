@@ -147,19 +147,6 @@ python3 -m http.server 8000
 
 ---
 
-## Deploying to a Custom Domain
-
-To serve from `theguitarroom.in` instead of the default GitHub Pages URL:
-
-1. At your domain's DNS provider, add:
-   - **4 × A records** on the root domain (`@`) pointing to GitHub's Pages IPs:
-     `185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153`
-   - **1 × CNAME record** on `www` pointing to `<username>.github.io`
-2. In **Settings → Pages → Custom domain**, enter `theguitarroom.in` and save.
-3. Once DNS propagates, enable **Enforce HTTPS** — required for the service worker and install prompt to work.
-
----
-
 ## The Reviews Pipeline
 
 The reviews section shows **real Google reviews** from both studio locations (Anna Nagar and Adambakkam), refreshed automatically — without ever exposing an API key to the browser or risking a runaway bill.
